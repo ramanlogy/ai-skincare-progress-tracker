@@ -437,7 +437,7 @@ def analyse_image(image_path, baseline_scan=None):
 # ═══════════════════════════════════════════════════════════════════
 
 from flask import (Flask, render_template, render_template_string, request, redirect,
-                   url_for, flash, jsonify, abort, send_from_directory)
+                   url_for, flash, jsonify, abort, send_from_directory, Response)
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (LoginManager, UserMixin, login_user, logout_user,
                          login_required, current_user)
@@ -466,14 +466,15 @@ def load_user(uid):
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
-    id            = db.Column(db.Integer, primary_key=True)
-    username      = db.Column(db.String(80),  unique=True, nullable=False)
-    email         = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
-    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
-    consent_given = db.Column(db.Boolean,  default=False)
-    scans         = db.relationship('SkinScan', backref='user', lazy=True,
-                                    cascade='all, delete-orphan')
+    id                = db.Column(db.Integer, primary_key=True)
+    username          = db.Column(db.String(80),  unique=True, nullable=False)
+    email             = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash     = db.Column(db.String(256), nullable=False)
+    created_at        = db.Column(db.DateTime, default=datetime.utcnow)
+    consent_given     = db.Column(db.Boolean,  default=False)
+    default_skin_type = db.Column(db.String(50), default='Normal')
+    scans             = db.relationship('SkinScan', backref='user', lazy=True,
+                                        cascade='all, delete-orphan')
 
     def set_password(self, p):
         self.password_hash = generate_password_hash(p)
@@ -1551,7 +1552,8 @@ def dashboard():
 @app.route('/capture')
 @login_required
 def capture_page():
-    return render_template('capture.html')
+    default_skin_type = getattr(current_user, 'default_skin_type', None) or 'Normal'
+    return render_template('capture.html', default_skin_type=default_skin_type)
 
 
 @app.route('/upload', methods=['POST'])
@@ -1563,7 +1565,7 @@ def upload():
 
     file  = request.files['image']
     notes = request.form.get('notes', '')
-    skin_type = request.form.get('skin_type', 'Normal')
+    skin_type = request.form.get('skin_type') or getattr(current_user, 'default_skin_type', None) or 'Normal'
 
     if not file.filename or not _allowed(file.filename):
         flash('Unsupported file type. Use PNG, JPG or JPEG.', 'error')
@@ -1610,6 +1612,261 @@ def upload():
         flash(f'Analysis error: {e}', 'error')
 
     return redirect(url_for('dashboard'))
+
+
+def _score_label(score):
+    if score >= 80:
+        return 'Excellent', 'excellent'
+    if score >= 65:
+        return 'Good', 'good'
+    if score >= 50:
+        return 'Fair', 'fair'
+    return 'Needs Attention', 'attention'
+
+
+def _build_profile_stats(scans, user):
+    complete = [s for s in scans if s.analysis_status == 'complete']
+    default_type = getattr(user, 'default_skin_type', None) or 'Normal'
+    if not complete:
+        return {
+            'total_scans': len(scans),
+            'complete_scans': 0,
+            'first_scan': None,
+            'last_scan': None,
+            'days_tracking': 0,
+            'avg_overall': None,
+            'avg_clarity': None,
+            'avg_redness': None,
+            'avg_texture': None,
+            'primary_skin_type': default_type,
+            'trend': 'none',
+            'trend_label': 'No data yet',
+        }
+
+    first = complete[0]
+    last = complete[-1]
+    days = max((last.captured_at.date() - first.captured_at.date()).days, 0)
+    skin_types = [s.skin_type for s in complete if s.skin_type]
+    primary_skin = max(set(skin_types), key=skin_types.count) if skin_types else default_type
+
+    if last.overall_change > 2:
+        trend, trend_label = 'up', 'Improving'
+    elif last.overall_change < -2:
+        trend, trend_label = 'down', 'Declining'
+    else:
+        trend, trend_label = 'stable', 'Stable'
+
+    return {
+        'total_scans': len(scans),
+        'complete_scans': len(complete),
+        'first_scan': first,
+        'last_scan': last,
+        'days_tracking': days,
+        'avg_overall': round(sum(s.overall_score for s in complete) / len(complete), 1),
+        'avg_clarity': round(sum(s.acne_score for s in complete) / len(complete), 1),
+        'avg_redness': round(sum(s.redness_score for s in complete) / len(complete), 1),
+        'avg_texture': round(sum(s.texture_score for s in complete) / len(complete), 1),
+        'primary_skin_type': primary_skin,
+        'trend': trend,
+        'trend_label': trend_label,
+    }
+
+
+def _build_skin_summary(latest, baseline, stats):
+    if not latest or latest.analysis_status != 'complete':
+        return {
+            'headline': 'Complete your first scan to unlock your skin profile',
+            'status_label': 'Awaiting Scan',
+            'status_class': 'pending',
+            'overview': 'Upload a clear, well-lit facial photo to receive personalised clarity, redness, and texture analysis.',
+            'concerns': [],
+            'recommendations': [
+                'Take your first scan in natural daylight with a clean, make-up-free face.',
+                'Use the same lighting and angle each week for consistent progress tracking.',
+            ],
+            'metrics': [],
+        }
+
+    overall_label, overall_class = _score_label(latest.overall_score)
+    clarity_label, _ = _score_label(latest.acne_score)
+    redness_label, _ = _score_label(latest.redness_score)
+    texture_label, _ = _score_label(latest.texture_score)
+
+    skin_type = latest.skin_type or stats['primary_skin_type']
+    headline = f'Your skin is currently rated {overall_label.lower()} overall'
+
+    overview_parts = [
+        f'Based on your latest scan ({latest.captured_at.strftime("%d %b %Y")}), '
+        f'your overall skin health score is {latest.overall_score:.0f}/100 with '
+        f'{skin_type.lower()} skin characteristics noted.',
+        f'Clarity is {clarity_label.lower()} ({latest.acne_score:.0f}/100) with '
+        f'{int(latest.acne_count)} visible blemish{"es" if latest.acne_count != 1 else ""} detected.',
+        f'Redness levels are {redness_label.lower()} ({latest.redness_score:.0f}/100) '
+        f'and surface texture is {texture_label.lower()} ({latest.texture_score:.0f}/100).',
+    ]
+
+    if baseline and latest.id != baseline.id:
+        direction = 'improved' if latest.overall_change > 0 else 'declined' if latest.overall_change < 0 else 'remained stable'
+        overview_parts.append(
+            f'Compared to your baseline from {baseline.captured_at.strftime("%d %b %Y")}, '
+            f'your overall score has {direction} by {abs(latest.overall_change):.1f} points.'
+        )
+
+    concerns = []
+    if latest.acne_score < 60:
+        concerns.append('Elevated blemish activity — consider a gentle salicylic acid cleanser.')
+    if latest.redness_score < 60:
+        concerns.append('Noticeable redness — soothing ingredients like niacinamide may help.')
+    if latest.texture_score < 60:
+        concerns.append('Uneven texture detected — regular exfoliation and hydration can improve smoothness.')
+    if not concerns:
+        concerns.append('No major concerns flagged — maintain your current routine and keep scanning weekly.')
+
+    recommendations = []
+    if skin_type == 'Oily':
+        recommendations.append('Use oil-free, non-comedogenic products and a lightweight gel moisturiser.')
+    elif skin_type == 'Dry':
+        recommendations.append('Prioritise ceramide-rich moisturisers and avoid harsh, stripping cleansers.')
+    elif skin_type == 'Sensitive':
+        recommendations.append('Patch-test new products and stick to fragrance-free, minimal-ingredient formulas.')
+    elif skin_type == 'Combination':
+        recommendations.append('Consider zone-specific care — lighter products on T-zone, richer on dry areas.')
+    else:
+        recommendations.append('Maintain a balanced routine with daily SPF, cleanser, and moisturiser.')
+
+    if stats['trend'] == 'up':
+        recommendations.append('Your scores are trending upward — keep consistent with what is working.')
+    elif stats['trend'] == 'down':
+        recommendations.append('Recent scores have dipped — review recent product or lifestyle changes.')
+    else:
+        recommendations.append('Scan weekly under consistent conditions to track meaningful changes.')
+
+    metrics = [
+        {'label': 'Overall', 'score': latest.overall_score, 'label_text': overall_label, 'class': overall_class},
+        {'label': 'Clarity', 'score': latest.acne_score, 'label_text': clarity_label, 'class': _score_label(latest.acne_score)[1]},
+        {'label': 'Redness', 'score': latest.redness_score, 'label_text': redness_label, 'class': _score_label(latest.redness_score)[1]},
+        {'label': 'Texture', 'score': latest.texture_score, 'label_text': texture_label, 'class': _score_label(latest.texture_score)[1]},
+    ]
+
+    return {
+        'headline': headline,
+        'status_label': overall_label,
+        'status_class': overall_class,
+        'overview': ' '.join(overview_parts),
+        'concerns': concerns,
+        'recommendations': recommendations,
+        'metrics': metrics,
+    }
+
+
+def _ensure_user_columns():
+    """Add new User columns on existing SQLite databases."""
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    if 'users' not in insp.get_table_names():
+        return
+    cols = {c['name'] for c in insp.get_columns('users')}
+    if 'default_skin_type' not in cols:
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN default_skin_type VARCHAR(50) DEFAULT 'Normal'"))
+            conn.commit()
+
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    if request.method == 'POST':
+        action = request.form.get('action', '')
+
+        if action == 'update_credentials':
+            username = request.form.get('username', '').strip()
+            email = request.form.get('email', '').strip().lower()
+
+            if not username or not email:
+                flash('Username and email are required.', 'error')
+            elif len(username) < 3:
+                flash('Username must be at least 3 characters.', 'error')
+            else:
+                existing = User.query.filter(User.username == username, User.id != current_user.id).first()
+                if existing:
+                    flash('That username is already taken.', 'error')
+                else:
+                    existing = User.query.filter(User.email == email, User.id != current_user.id).first()
+                    if existing:
+                        flash('That email is already registered.', 'error')
+                    else:
+                        current_user.username = username
+                        current_user.email = email
+                        db.session.commit()
+                        flash('Account details updated successfully.', 'success')
+
+        elif action == 'change_password':
+            current_pw = request.form.get('current_password', '')
+            new_pw = request.form.get('new_password', '')
+            confirm_pw = request.form.get('confirm_password', '')
+
+            if not current_user.check_password(current_pw):
+                flash('Current password is incorrect.', 'error')
+            elif len(new_pw) < 6:
+                flash('New password must be at least 6 characters.', 'error')
+            elif new_pw != confirm_pw:
+                flash('New passwords do not match.', 'error')
+            else:
+                current_user.set_password(new_pw)
+                db.session.commit()
+                flash('Password changed successfully.', 'success')
+
+        elif action == 'update_preferences':
+            skin_type = request.form.get('default_skin_type', 'Normal')
+            allowed = {'Normal', 'Oily', 'Dry', 'Combination', 'Sensitive'}
+            if skin_type not in allowed:
+                flash('Invalid skin type selected.', 'error')
+            else:
+                current_user.default_skin_type = skin_type
+                db.session.commit()
+                flash('Skin type preference saved.', 'success')
+
+        return redirect(url_for('profile'))
+
+    scans = (SkinScan.query.filter_by(user_id=current_user.id)
+             .order_by(SkinScan.captured_at.asc()).all())
+    complete_scans = [s for s in scans if s.analysis_status == 'complete']
+    latest = complete_scans[-1] if complete_scans else None
+    baseline = complete_scans[0] if complete_scans else None
+    stats = _build_profile_stats(scans, current_user)
+    summary = _build_skin_summary(latest, baseline, stats)
+    initials = (current_user.username[:2] if len(current_user.username) >= 2 else current_user.username).upper()
+
+    return render_template(
+        'profile.html',
+        latest=latest,
+        baseline=baseline,
+        stats=stats,
+        summary=summary,
+        initials=initials,
+        skin_types=['Normal', 'Oily', 'Dry', 'Combination', 'Sensitive'],
+    )
+
+
+@app.route('/history/export')
+@login_required
+def export_csv():
+    scans = (SkinScan.query.filter_by(user_id=current_user.id)
+             .order_by(SkinScan.captured_at.asc()).all())
+
+    def generate():
+        yield 'Date,Status,Skin Type,Overall Score,Clarity,Redness,Texture,Overall Change,Notes\n'
+        for scan in scans:
+            notes = (scan.notes or '').replace('"', '""')
+            yield (f'{scan.captured_at.strftime("%Y-%m-%d %H:%M")},{scan.analysis_status},'
+                   f'{scan.skin_type},{scan.overall_score},{scan.acne_score},'
+                   f'{scan.redness_score},{scan.texture_score},{scan.overall_change},"{notes}"\n')
+
+    return Response(
+        generate(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=skincare_history.csv'},
+    )
 
 
 @app.route('/history')
@@ -1666,6 +1923,7 @@ def api_scans():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        _ensure_user_columns()
         logger.info("Database tables created / verified.")
 
     print("=" * 60)

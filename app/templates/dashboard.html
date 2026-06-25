@@ -153,6 +153,11 @@
       gap: .4rem;
     }
 
+    .user-chip:hover {
+      background: #bae6fd;
+      color: var(--primary-hover);
+    }
+
     .btn-ghost-sm {
       font-size: .875rem;
       font-weight: 500;
@@ -1310,9 +1315,10 @@
       <a href="/dashboard" class="active">Dashboard</a>
       <a href="/capture">New Scan</a>
       <a href="/history">History</a>
+      <a href="/profile">Profile</a>
     </div>
     <div class="nav-user">
-      <span class="user-chip">{{ current_user.username }}</span>
+      <a href="/profile" class="user-chip">{{ current_user.username }}</a>
       <a href="/logout" class="btn-ghost-sm"><i data-lucide="log-out"></i> Log out</a>
     </div>
   </nav>

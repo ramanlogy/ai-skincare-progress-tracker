@@ -164,7 +164,11 @@ Changes are tracked relative to the user's first (baseline) scan.
 
 ## Ethical Considerations
 
+<<<<<<< HEAD
 - **Not a medical device.** The AI Skincare Progress Tracker tracks skincare product effectiveness only.
+=======
+- **Not a medical device.** SanjuAI tracks skincare product effectiveness only.
+>>>>>>> 718b2949afcd5d59da1e8a69c1016927062668ff
   It does not diagnose, treat, or provide medical advice. A prominent disclaimer
   is displayed on every page.
 - **Informed consent.** Users must explicitly consent to facial image capture

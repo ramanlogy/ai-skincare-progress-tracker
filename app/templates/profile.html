@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - The AI Skincare Progress Tracker</title>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap');
+
+:root {
+  --bg-main:    #f8fafc;
+  --bg-card:    #ffffff;
+  --bg-subtle:  #f1f5f9;
+  --primary:    #0ea5e9;
+  --primary-hover: #0284c7;
+  --primary-light: #e0f2fe;
+  --text-main:  #0f172a;
+  --text-muted: #64748b;
+  --border:     #e2e8f0;
+  --success:    #10b981;
+  --warning:    #f59e0b;
+  --danger:     #ef4444;
+  --danger-light: #fee2e2;
+  --sage: #10b981;
+  --rose: #f43f5e;
+  --sky: #0ea5e9;
+  --radius:     16px;
+  --radius-sm:  8px;
+  --shadow:     0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --transition: all 0.2s ease-in-out;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+body { font-family: 'Inter', sans-serif; background: var(--bg-main);
+       color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+h1,h2,h3,h4 { font-family: 'Outfit', sans-serif; font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; }
+a { color: var(--primary); text-decoration: none; transition: var(--transition); }
+a:hover { color: var(--primary-hover); }
+img { max-width: 100%; display: block; }
+main { flex: 1; }
+
+.navbar { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 2rem; height: 64px; position: sticky; top: 0; z-index: 100; }
+.nav-brand { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: .5rem; letter-spacing: -0.01em; }
+.nav-brand:hover { color: var(--primary); }
+.brand-mark { color: var(--primary); display: flex; }
+.nav-links { display: flex; gap: .25rem; margin-left: 2.5rem; }
+.nav-links a { font-size: .875rem; font-weight: 500; color: var(--text-muted); padding: .5rem 1rem; border-radius: var(--radius-sm); transition: var(--transition); }
+.nav-links a:hover, .nav-links a.active { background: var(--bg-subtle); color: var(--primary); }
+.nav-user { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
+.user-chip { font-size: .875rem; font-weight: 500; background: var(--primary-light); padding: .35rem .85rem; border-radius: 20px; color: var(--primary-hover); display: flex; align-items: center; gap: .4rem; }
+.user-chip:hover { background: #bae6fd; color: var(--primary-hover); }
+.btn-ghost-sm { font-size: .875rem; font-weight: 500; color: var(--text-muted); padding: .35rem .75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); transition: var(--transition); display: flex; align-items: center; gap: .4rem; }
+.btn-ghost-sm:hover { background: var(--bg-subtle); color: var(--text-main); }
+
+.flash-container { position: fixed; top: 80px; right: 1.5rem; z-index: 200; display: flex; flex-direction: column; gap: .5rem; max-width: 380px; }
+.flash { padding: 1rem 1.25rem; border-radius: var(--radius-sm); font-size: .875rem; font-weight: 500; display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; box-shadow: var(--shadow-lg); animation: slideIn .3s cubic-bezier(0.16, 1, 0.3, 1); line-height: 1.4; }
+@keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+.flash-success { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; }
+.flash-error   { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+.flash-warning { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+.flash-info    { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; }
+.flash-close { background:none; border:none; cursor:pointer; color:inherit; opacity:.5; line-height:1; flex-shrink:0; display:flex; }
+.flash-close:hover { opacity:1; }
+
+.pc { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+.ph { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+.pt { font-size: 2.25rem; letter-spacing: -0.03em; color: var(--text-main); }
+.ps { font-size: 1rem; color: var(--text-muted); margin-top: .4rem; }
+
+.btn-primary { background: var(--primary); color: #fff; border: none; padding: .75rem 1.5rem; border-radius: var(--radius-sm); font-family: 'Inter', sans-serif; font-size: .875rem; font-weight: 500; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
+.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25); color: #fff; }
+.btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); padding: .75rem 1.5rem; border-radius: var(--radius-sm); font-family: 'Inter', sans-serif; font-size: .875rem; font-weight: 500; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; gap: .5rem; }
+.btn-secondary:hover { background: var(--bg-subtle); }
+.btn-danger { background: var(--danger); color: #fff; border: none; padding: .75rem 1.5rem; border-radius: var(--radius-sm); font-size: .875rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: .5rem; transition: var(--transition); }
+.btn-danger:hover { background: #dc2626; color: #fff; }
+
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+.ct { font-size: 1.125rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: .5rem; }
+.ct i { color: var(--primary); }
+
+.profile-hero { display: flex; align-items: center; gap: 1.5rem; padding: 2rem; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: var(--radius); color: #fff; margin-bottom: 1.5rem; box-shadow: var(--shadow-lg); flex-wrap: wrap; }
+.avatar { width: 88px; height: 88px; border-radius: 50%; background: rgba(255,255,255,.2); border: 3px solid rgba(255,255,255,.5); display: flex; align-items: center; justify-content: center; font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 700; flex-shrink: 0; }
+.profile-hero-info h2 { font-size: 1.75rem; color: #fff; margin-bottom: .25rem; }
+.profile-hero-info p { opacity: .9; font-size: .95rem; margin-bottom: .35rem; display: flex; align-items: center; gap: .4rem; }
+.profile-badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.pbadge { background: rgba(255,255,255,.2); padding: .3rem .75rem; border-radius: 20px; font-size: .8rem; font-weight: 500; display: flex; align-items: center; gap: .35rem; }
+
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
+
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+@media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+.stat-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem; text-align: center; }
+.stat-val { font-family: 'Outfit', sans-serif; font-size: 1.75rem; font-weight: 700; color: var(--primary); }
+.stat-label { font-size: .8rem; color: var(--text-muted); margin-top: .25rem; font-weight: 500; }
+
+.skin-status { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+.skin-photo { width: 140px; height: 140px; border-radius: var(--radius-sm); object-fit: cover; border: 2px solid var(--border); flex-shrink: 0; }
+.skin-photo-placeholder { width: 140px; height: 140px; border-radius: var(--radius-sm); background: var(--bg-subtle); border: 2px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-shrink: 0; }
+.skin-details { flex: 1; min-width: 200px; }
+.status-badge { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .85rem; border-radius: 20px; font-size: .8rem; font-weight: 600; margin-bottom: .75rem; }
+.status-badge--excellent { background: #ecfdf5; color: #065f46; }
+.status-badge--good { background: #eff6ff; color: #1e40af; }
+.status-badge--fair { background: #fffbeb; color: #92400e; }
+.status-badge--attention { background: #fef2f2; color: #991b1b; }
+.status-badge--pending { background: var(--bg-subtle); color: var(--text-muted); }
+.skin-headline { font-size: 1.15rem; margin-bottom: .75rem; }
+.skin-meta { font-size: .875rem; color: var(--text-muted); line-height: 1.8; }
+.skin-meta strong { color: var(--text-main); }
+
+.metric-bars { margin-top: 1rem; display: flex; flex-direction: column; gap: .75rem; }
+.metric-row { display: flex; align-items: center; gap: .75rem; }
+.metric-label { width: 70px; font-size: .8rem; font-weight: 500; color: var(--text-muted); flex-shrink: 0; }
+.metric-track { flex: 1; height: 8px; background: var(--bg-subtle); border-radius: 4px; overflow: hidden; }
+.metric-fill { height: 100%; border-radius: 4px; transition: width .8s ease; }
+.metric-fill--excellent { background: var(--success); }
+.metric-fill--good { background: var(--primary); }
+.metric-fill--fair { background: var(--warning); }
+.metric-fill--attention { background: var(--danger); }
+.metric-score { width: 36px; font-size: .85rem; font-weight: 600; text-align: right; flex-shrink: 0; }
+
+.summary-text { font-size: .95rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 1.25rem; }
+.summary-list { list-style: none; display: flex; flex-direction: column; gap: .65rem; }
+.summary-list li { font-size: .9rem; color: var(--text-main); line-height: 1.5; display: flex; align-items: flex-start; gap: .5rem; padding: .65rem .85rem; background: var(--bg-subtle); border-radius: var(--radius-sm); }
+.summary-list li i { flex-shrink: 0; margin-top: .1rem; }
+.summary-list--concerns li { background: #fffbeb; }
+.summary-list--concerns li i { color: var(--warning); }
+.summary-list--tips li { background: #ecfdf5; }
+.summary-list--tips li i { color: var(--success); }
+
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-size: .875rem; font-weight: 500; margin-bottom: .4rem; color: var(--text-main); }
+.form-group input, .form-group select { width: 100%; padding: .65rem .85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'Inter', sans-serif; font-size: .875rem; transition: var(--transition); background: var(--bg-card); }
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+.form-hint { font-size: .78rem; color: var(--text-muted); margin-top: .35rem; }
+.form-divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+.account-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+@media (max-width: 500px) { .account-meta { grid-template-columns: 1fr; } }
+.meta-item { background: var(--bg-subtle); padding: .85rem 1rem; border-radius: var(--radius-sm); }
+.meta-item span { display: block; font-size: .75rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .25rem; }
+.meta-item strong { font-size: .9rem; }
+
+.data-rights p { font-size: .9rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; }
+.data-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+.trend-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+.trend-pill--up { background: #ecfdf5; color: #065f46; }
+.trend-pill--down { background: #fef2f2; color: #991b1b; }
+.trend-pill--stable { background: var(--bg-subtle); color: var(--text-muted); }
+
+.site-footer { border-top: 1px solid var(--border); background: var(--bg-card); padding: 2rem; text-align: center; margin-top: auto; }
+.disclaimer  { font-size: .875rem; font-weight: 500; color: var(--text-main); background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 1.5rem; max-width: 800px; margin: 0 auto 1.5rem; line-height: 1.6; display: flex; align-items: flex-start; gap: .75rem; text-align: left; }
+.disclaimer i { color: var(--warning); flex-shrink: 0; margin-top: .1rem; }
+.footer-copy { font-size: .875rem; color: var(--text-muted); }
+</style>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<nav class="navbar">
+  <a class="nav-brand" href="/dashboard"><span class="brand-mark"><i data-lucide="activity"></i></span> The AI Skincare Progress Tracker</a>
+  <div class="nav-links">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/capture">New Scan</a>
+    <a href="/history">History</a>
+    <a href="/profile" class="active">Profile</a>
+  </div>
+  <div class="nav-user">
+    <a href="/profile" class="user-chip"><i data-lucide="user"></i> {{ current_user.username }}</a>
+    <a href="/logout" class="btn-ghost-sm"><i data-lucide="log-out"></i> Log out</a>
+  </div>
+</nav>
+{% endif %}
+<div class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="flash flash-{{ cat }}">{{ msg }}
+    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+  </div>
+  {% endfor %}{% endwith %}
+</div>
+<main>
+<div class="pc">
+  <div class="ph">
+    <div>
+      <h1 class="pt">My Profile</h1>
+      <p class="ps">Manage your account, credentials, and view your skin health summary</p>
+    </div>
+    <a href="/capture" class="btn-primary"><i data-lucide="camera"></i> New Scan</a>
+  </div>
+
+  <div class="profile-hero">
+    <div class="avatar">{{ initials }}</div>
+    <div class="profile-hero-info">
+      <h2>{{ current_user.username }}</h2>
+      <p><i data-lucide="mail" width="14" height="14"></i> {{ current_user.email }}</p>
+      <p><i data-lucide="calendar" width="14" height="14"></i> Member since {{ current_user.created_at.strftime('%d %b %Y') }}</p>
+      <div class="profile-badges">
+        <span class="pbadge"><i data-lucide="droplet" width="12" height="12"></i> {{ stats.primary_skin_type }} Skin</span>
+        <span class="pbadge"><i data-lucide="scan" width="12" height="12"></i> {{ stats.total_scans }} Scan{{ 's' if stats.total_scans != 1 }}</span>
+        {% if stats.trend != 'none' %}
+        <span class="pbadge"><i data-lucide="{% if stats.trend == 'up' %}trending-up{% elif stats.trend == 'down' %}trending-down{% else %}minus{% endif %}" width="12" height="12"></i> {{ stats.trend_label }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-val">{{ stats.complete_scans }}</div>
+      <div class="stat-label">Completed Scans</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{% if stats.avg_overall %}{{ stats.avg_overall | int }}{% else %}—{% endif %}</div>
+      <div class="stat-label">Avg Overall Score</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{{ stats.days_tracking }}</div>
+      <div class="stat-label">Days Tracking</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{% if latest %}{{ latest.overall_score | int }}{% else %}—{% endif %}</div>
+      <div class="stat-label">Latest Score</div>
+    </div>
+  </div>
+
+  <div class="profile-grid">
+    <div>
+      <div class="card">
+        <h3 class="ct"><i data-lucide="sparkles"></i> Current Skin Status</h3>
+        <div class="skin-status">
+          {% if latest %}
+          <img src="/uploads/{{ latest.image_filename }}" class="skin-photo" alt="Latest scan">
+          {% else %}
+          <div class="skin-photo-placeholder"><i data-lucide="image" width="32" height="32"></i></div>
+          {% endif %}
+          <div class="skin-details">
+            <span class="status-badge status-badge--{{ summary.status_class }}">
+              <i data-lucide="activity" width="12" height="12"></i> {{ summary.status_label }}
+            </span>
+            <p class="skin-headline">{{ summary.headline }}</p>
+            <div class="skin-meta">
+              {% if latest %}
+              <p><strong>Last scanned:</strong> {{ latest.captured_at.strftime('%d %b %Y, %H:%M') }}</p>
+              <p><strong>Skin type:</strong> {{ latest.skin_type or stats.primary_skin_type }}</p>
+              <p><strong>Blemishes detected:</strong> {{ latest.acne_count | int }}</p>
+              {% if latest.overall_change != 0 %}
+              <p><strong>vs baseline:</strong>
+                <span class="trend-pill trend-pill--{% if latest.overall_change > 0 %}up{% elif latest.overall_change < 0 %}down{% else %}stable{% endif %}">
+                  {% if latest.overall_change > 0 %}+{% endif %}{{ latest.overall_change | round(1) }} pts
+                </span>
+              </p>
+              {% endif %}
+              {% else %}
+              <p>No scans completed yet. Take your first scan to see your skin status here.</p>
+              {% endif %}
+            </div>
+            {% if summary.metrics %}
+            <div class="metric-bars">
+              {% for m in summary.metrics %}
+              <div class="metric-row">
+                <span class="metric-label">{{ m.label }}</span>
+                <div class="metric-track">
+                  <div class="metric-fill metric-fill--{{ m.class }}" style="width:{{ m.score }}%"></div>
+                </div>
+                <span class="metric-score">{{ m.score | int }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="ct"><i data-lucide="file-text"></i> Skin Analysis Summary</h3>
+        <p class="summary-text">{{ summary.overview }}</p>
+        {% if summary.concerns %}
+        <h4 style="font-size:.95rem;margin-bottom:.65rem;color:var(--text-main);">Areas to Watch</h4>
+        <ul class="summary-list summary-list--concerns">
+          {% for item in summary.concerns %}
+          <li><i data-lucide="alert-circle" width="16" height="16"></i> {{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if summary.recommendations %}
+        <h4 style="font-size:.95rem;margin:1.25rem 0 .65rem;color:var(--text-main);">Personalised Recommendations</h4>
+        <ul class="summary-list summary-list--tips">
+          {% for item in summary.recommendations %}
+          <li><i data-lucide="check-circle" width="16" height="16"></i> {{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3 class="ct"><i data-lucide="user-cog"></i> Account Details</h3>
+        <div class="account-meta">
+          <div class="meta-item"><span>Username</span><strong>{{ current_user.username }}</strong></div>
+          <div class="meta-item"><span>Email</span><strong>{{ current_user.email }}</strong></div>
+          <div class="meta-item"><span>Consent Given</span><strong>{% if current_user.consent_given %}Yes{% else %}No{% endif %}</strong></div>
+          <div class="meta-item"><span>Tracking Since</span><strong>{% if stats.first_scan %}{{ stats.first_scan.captured_at.strftime('%d %b %Y') }}{% else %}Not started{% endif %}</strong></div>
+        </div>
+        <form method="POST" action="/profile">
+          <input type="hidden" name="action" value="update_credentials">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" value="{{ current_user.username }}" required minlength="3">
+          </div>
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" value="{{ current_user.email }}" required>
+            <p class="form-hint">Used for account recovery and notifications.</p>
+          </div>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Account Details</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="ct"><i data-lucide="lock"></i> Change Password</h3>
+        <form method="POST" action="/profile">
+          <input type="hidden" name="action" value="change_password">
+          <div class="form-group">
+            <label for="current_password">Current password</label>
+            <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
+          </div>
+          <div class="form-group">
+            <label for="new_password">New password</label>
+            <input type="password" id="new_password" name="new_password" required minlength="6" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="confirm_password">Confirm new password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required minlength="6" autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn-primary"><i data-lucide="key"></i> Update Password</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="ct"><i data-lucide="sliders-horizontal"></i> Skin Preferences</h3>
+        <form method="POST" action="/profile">
+          <input type="hidden" name="action" value="update_preferences">
+          <div class="form-group">
+            <label for="default_skin_type">Default skin type</label>
+            <select id="default_skin_type" name="default_skin_type">
+              {% for st in skin_types %}
+              <option value="{{ st }}" {% if (current_user.default_skin_type or 'Normal') == st %}selected{% endif %}>{{ st }}</option>
+              {% endfor %}
+            </select>
+            <p class="form-hint">Pre-selected when capturing new scans. Helps tailor recommendations.</p>
+          </div>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Preferences</button>
+        </form>
+      </div>
+
+      <div class="card data-rights">
+        <h3 class="ct"><i data-lucide="shield"></i> Privacy &amp; Data</h3>
+        <p>All facial images and analysis data are stored locally on this device only.
+           You can export your scan history or permanently delete your account and all associated data.</p>
+        <div class="data-actions">
+          <a href="/history/export" class="btn-secondary"><i data-lucide="download"></i> Export Scan History (CSV)</a>
+          <a href="/history" class="btn-secondary"><i data-lucide="history"></i> View All Scans</a>
+        </div>
+        <hr class="form-divider">
+        <form method="POST" action="/account/delete"
+              onsubmit="return confirm('This will permanently delete your account and ALL data. Are you absolutely sure?')">
+          <button type="submit" class="btn-danger"><i data-lucide="trash-2"></i> Delete My Account &amp; All Data</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+<footer class="site-footer">
+  <div class="disclaimer"><i data-lucide="alert-triangle"></i><strong>Medical Disclaimer:</strong> The AI Skincare Progress Tracker tracks skincare
+  effectiveness only — not a medical device. Consult a dermatologist for skin health concerns.</div>
+  <p class="footer-copy">© 2026 The AI Skincare Progress Tracker · COM668 Computing Project · B00912171</p>
+</footer>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.lucide) { lucide.createIcons(); }
+  document.querySelectorAll('.flash').forEach(el => {
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(20px)';
+      setTimeout(() => el.remove(), 300);
+    }, 5000);
+  });
+  document.querySelectorAll('.metric-fill').forEach(b => {
+    const w = b.style.width;
+    b.style.width = '0';
+    requestAnimationFrame(() => setTimeout(() => { b.style.width = w; }, 150));
+  });
+});
+</script>
+</body>
+</html>

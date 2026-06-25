@@ -18,6 +18,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
     consent_given = db.Column(db.Boolean, default=False)
+    default_skin_type = db.Column(db.String(50), default='Normal')
 
     scans = db.relationship('SkinScan', backref='user', lazy=True,
                             cascade='all, delete-orphan')

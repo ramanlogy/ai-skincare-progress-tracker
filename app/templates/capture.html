@@ -51,6 +51,7 @@ main { flex: 1; }
 .nav-links a:hover, .nav-links a.active { background: var(--bg-subtle); color: var(--primary); }
 .nav-user { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
 .user-chip { font-size: .875rem; font-weight: 500; background: var(--primary-light); padding: .35rem .85rem; border-radius: 20px; color: var(--primary-hover); display: flex; align-items: center; gap: .4rem; }
+.user-chip:hover { background: #bae6fd; color: var(--primary-hover); }
 .btn-ghost-sm { font-size: .875rem; font-weight: 500; color: var(--text-muted); padding: .35rem .75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); transition: var(--transition); display: flex; align-items: center; gap: .4rem; }
 .btn-ghost-sm:hover { background: var(--bg-subtle); color: var(--text-main); }
 
@@ -224,9 +225,10 @@ main { flex: 1; }
     <a href="/dashboard">Dashboard</a>
     <a href="/capture" class="active">New Scan</a>
     <a href="/history">History</a>
+    <a href="/profile">Profile</a>
   </div>
   <div class="nav-user">
-    <span class="user-chip">{{ current_user.username }}</span>
+    <a href="/profile" class="user-chip">{{ current_user.username }}</a>
     <a href="/logout" class="btn-ghost-sm"><i data-lucide="log-out"></i> Log out</a>
   </div>
 </nav>
@@ -288,11 +290,12 @@ main { flex: 1; }
       <div class="field">
         <label for="skin_type">Skin Condition</label>
         <select name="skin_type" id="skin_type" style="width: 100%; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'Inter', sans-serif; font-size: .95rem; background: var(--bg-main); color: var(--text-main);">
-          <option value="Normal">Normal</option>
-          <option value="Oily">Oily</option>
-          <option value="Dry">Dry</option>
-          <option value="Combination">Combination</option>
-          <option value="Sensitive">Sensitive</option>
+          {% set default_type = default_skin_type|default('Normal') %}
+          <option value="Normal" {% if default_type == 'Normal' %}selected{% endif %}>Normal</option>
+          <option value="Oily" {% if default_type == 'Oily' %}selected{% endif %}>Oily</option>
+          <option value="Dry" {% if default_type == 'Dry' %}selected{% endif %}>Dry</option>
+          <option value="Combination" {% if default_type == 'Combination' %}selected{% endif %}>Combination</option>
+          <option value="Sensitive" {% if default_type == 'Sensitive' %}selected{% endif %}>Sensitive</option>
         </select>
       </div>
 
